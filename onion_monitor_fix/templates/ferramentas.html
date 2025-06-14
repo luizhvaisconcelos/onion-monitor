@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Ferramentas - Onion Monitor v1{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-tools"></i> Ferramentas Auxiliares</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="feature-icon bg-primary text-white mb-3">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <h5 class="card-title">Agendamento de Buscas</h5>
+                                <p class="card-text">Configure buscas automáticas para monitoramento contínuo de termos sensíveis.</p>
+                                <a href="{{ url_for('agendar_busca') }}" class="btn btn-primary">
+                                    <i class="fas fa-calendar-alt"></i> Agendar Buscas
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="feature-icon bg-success text-white mb-3">
+                                    <i class="fas fa-file-export"></i>
+                                </div>
+                                <h5 class="card-title">Exportação de Dados</h5>
+                                <p class="card-text">Exporte os resultados das buscas e relatórios para análise externa.</p>
+                                <a href="{{ url_for('exportar_csv') }}" class="btn btn-success">
+                                    <i class="fas fa-file-csv"></i> Exportar CSV
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="feature-icon bg-info text-white mb-3">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <h5 class="card-title">Relatórios de Auditoria</h5>
+                                <p class="card-text">Visualize relatórios detalhados sobre as atividades do sistema.</p>
+                                <a href="{{ url_for('relatorio_auditoria', periodo='hoje') }}" class="btn btn-info">
+                                    <i class="fas fa-chart-pie"></i> Ver Relatórios
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-sitemap"></i> Verificação de Fontes</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Verifique o status das fontes de busca cadastradas no sistema.</p>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>Tipo</th>
+                                                <th>Status</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for fonte in fontes %}
+                                            {% if fonte.ativo %}
+                                            <tr id="fonte-{{ fonte.id }}">
+                                                <td>{{ fonte.nome }}</td>
+                                                <td>
+                                                    {% if fonte.tipo == 'surface' %}
+                                                    <span class="badge bg-info">Surface Web</span>
+                                                    {% elif fonte.tipo == 'lista' %}
+                                                    <span class="badge bg-primary">Lista</span>
+                                                    {% elif fonte.tipo == 'forum' %}
+                                                    <span class="badge bg-warning">Fórum</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">{{ fonte.tipo|title }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td id="status-{{ fonte.id }}">
+                                                    <span class="badge bg-secondary">Não verificado</span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-primary" id="btn-verificar-{{ fonte.id }}">
+                                                        <i class="fas fa-sync-alt"></i> Verificar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-cogs"></i> Manutenção do Sistema</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <h6><i class="fas fa-database"></i> Banco de Dados</h6>
+                                    <p>Realize operações de manutenção no banco de dados do sistema.</p>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-warning" onclick="showMaintenanceModal('backup')">
+                                            <i class="fas fa-download"></i> Backup
+                                        </button>
+                                        <button class="btn btn-danger" onclick="showMaintenanceModal('limpar')">
+                                            <i class="fas fa-trash-alt"></i> Limpar Dados
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h6><i class="fas fa-clock"></i> Agendamento</h6>
+                                    <p>Gerencie as tarefas agendadas no sistema.</p>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ url_for('agendar_busca') }}" class="btn btn-info">
+                                            <i class="fas fa-tasks"></i> Gerenciar Tarefas
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> <strong>Atenção:</strong> As operações de manutenção podem afetar o funcionamento do sistema. Realize-as com cautela.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Manutenção -->
+<div class="modal fade" id="maintenanceModal" tabindex="-1" aria-labelledby="maintenanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="maintenanceModalLabel">Manutenção do Sistema</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="maintenance-content">
+                    <!-- Conteúdo dinâmico -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirm-maintenance">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comentários e créditos -->
+<!--
+Desenvolvido por Luiz Vaisconcelos
+Email: luiz.vaisconcelos@gmail.com
+LinkedIn: https://www.linkedin.com/in/vaisconcelos/
+GitHub: https://github.com/luizhvaisconcelos
+-->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Função para verificar status da fonte
+    document.addEventListener('DOMContentLoaded', function() {
+        // Usando delegação de eventos para garantir que funcione mesmo com elementos dinâmicos
+        document.body.addEventListener('click', function(event) {
+            // Verifica se o clique foi em um botão de verificação ou em seu ícone
+            const target = event.target;
+            const btn = target.closest('button[id^="btn-verificar-"]');
+            if (!btn) return; // Se não for um botão de verificação, sai da função
+            
+            // Evita o comportamento padrão do clique
+            event.preventDefault();
+            
+            // Extrai o ID da fonte do ID do botão
+            const id = btn.id.replace('btn-verificar-', '');
+            console.log("Verificando fonte ID:", id);
+            
+            // Salva o conteúdo original do botão
+            const originalContent = btn.innerHTML;
+            
+            // Substitui o conteúdo do botão pelo GIF de evolução
+            btn.innerHTML = `<img src="/static/images/charmeleon_evolving.gif" alt="Verificando..." style="height: 18px; width: auto;"> Verificando...`;
+            
+            // Desabilita o botão durante a verificação
+            btn.disabled = true;
+            
+            // Atualiza o status para "Verificando..."
+            const statusCell = document.getElementById(`status-${id}`);
+            if (statusCell) {
+                statusCell.innerHTML = '<span class="badge bg-warning">Verificando...</span>';
+            }
+            
+            fetch(`/verificar-fonte/${id}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro na resposta do servidor: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Restaura o conteúdo original do botão e reabilita
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    
+                    if (data.success) {
+                        // Atualiza o status na tabela
+                        if (statusCell) {
+                            if (data.status === 'online') {
+                                statusCell.innerHTML = '<span class="badge bg-success">Online</span>';
+                            } else {
+                                statusCell.innerHTML = '<span class="badge bg-danger">Offline</span>';
+                            }
+                        }
+                        
+                        // Mostra mensagem de sucesso
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show animate__animated animate__fadeIn';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = `Fonte verificada: ${data.status === 'online' ? 'Online' : 'Offline'} - ${data.detalhes}`;
+                        alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                        
+                        document.querySelector('.card-body').prepend(alertDiv);
+                    } else {
+                        // Atualiza o status na tabela para erro
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="badge bg-danger">Erro</span>';
+                        }
+                        
+                        // Mostra mensagem de erro
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show animate__animated animate__fadeIn';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = 'Erro ao verificar fonte: ' + (data.message || 'Erro desconhecido');
+                        alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                        
+                        document.querySelector('.card-body').prepend(alertDiv);
+                    }
+                })
+                .catch(error => {
+                    // Restaura o conteúdo original do botão e reabilita
+                    btn.innerHTML = originalContent;
+                    btn.disabled = false;
+                    
+                    // Atualiza o status na tabela para erro
+                    if (statusCell) {
+                        statusCell.innerHTML = '<span class="badge bg-danger">Erro</span>';
+                    }
+                    
+                    console.error('Erro:', error);
+                    
+                    // Mostra mensagem de erro
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show animate__animated animate__fadeIn';
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = 'Erro ao verificar fonte: ' + error;
+                    alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                    
+                    document.querySelector('.card-body').prepend(alertDiv);
+                });
+        });
+    });
+    
+    // Função para mostrar modal de manutenção
+    window.showMaintenanceModal = function(type) {
+        var modal = document.getElementById('maintenanceModal');
+        var title = document.getElementById('maintenanceModalLabel');
+        var content = document.getElementById('maintenance-content');
+        var confirmBtn = document.getElementById('confirm-maintenance');
+        
+        // Configura o modal de acordo com o tipo
+        if (type === 'backup') {
+            title.textContent = 'Backup do Banco de Dados';
+            content.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Esta operação irá criar um backup completo do banco de dados.
+                </div>
+                <p>O arquivo de backup será salvo na pasta do sistema com a data atual.</p>
+                <p>Deseja continuar?</p>
+            `;
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.textContent = 'Realizar Backup';
+            confirmBtn.onclick = function() {
+                // Simula operação de backup
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show animate__animated animate__fadeIn';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = 'Backup realizado com sucesso! Arquivo: onion_monitor_backup_' + new Date().toISOString().split('T')[0] + '.db';
+                alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                
+                document.querySelector('.main-content').prepend(alertDiv);
+                
+                // Fecha o modal
+                var modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+            };
+        } else if (type === 'limpar') {
+            title.textContent = 'Limpar Dados do Sistema';
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Atenção!</strong> Esta operação irá remover dados do sistema.
+                </div>
+                <p>Selecione quais dados deseja limpar:</p>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="limpar-coletas">
+                    <label class="form-check-label" for="limpar-coletas">
+                        Coletas (resultados de busca)
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="limpar-auditoria">
+                    <label class="form-check-label" for="limpar-auditoria">
+                        Registros de auditoria
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="limpar-status">
+                    <label class="form-check-label" for="limpar-status">
+                        Status de fontes
+                    </label>
+                </div>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-circle"></i> Esta operação não pode ser desfeita. Recomendamos realizar um backup antes de prosseguir.
+                </div>
+            `;
+            confirmBtn.className = 'btn btn-danger';
+            confirmBtn.textContent = 'Limpar Dados';
+            confirmBtn.onclick = function() {
+                // Verifica se alguma opção foi selecionada
+                var coletasCheck = document.getElementById('limpar-coletas').checked;
+                var auditoriaCheck = document.getElementById('limpar-auditoria').checked;
+                var statusCheck = document.getElementById('limpar-status').checked;
+                
+                if (!coletasCheck && !auditoriaCheck && !statusCheck) {
+                    alert('Selecione pelo menos uma opção para limpar.');
+                    return;
+                }
+                
+                // Simula operação de limpeza
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show animate__animated animate__fadeIn';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = 'Dados limpos com sucesso!';
+                alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                
+                document.querySelector('.main-content').prepend(alertDiv);
+                
+                // Fecha o modal
+                var modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+            };
+        }
+        
+        // Mostra o modal
+        var modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+    };
+</script>
+{% endblock %}

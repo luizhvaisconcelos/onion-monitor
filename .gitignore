@@ -1,0 +1,47 @@
+# Ambiente virtual Python
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+onion_monitor.db
+
+# Logs
+*.log
+logs/
+app.log
+coletor.log
+db.log
+busca_semantica.log
+auditoria.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Configurações do IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de backup
+*.backup
+backup_*/
+
+# Arquivos sensíveis
+.env
+config.ini
+secrets.txt
+
+# Arquivos específicos do sistema
+geckodriver.log
+migration.log

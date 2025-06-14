@@ -1,0 +1,177 @@
+#!/bin/bash
+
+echo "🔐 Iniciando instalação completa do Onion Monitor v2..."
+echo "🧅 Versão com suporte completo a buscas na deep web, dark web e surface web"
+sleep 1
+
+# Cores para melhor visualização
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Função para verificar sucesso da operação
+check_success() {
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ $1${NC}"
+    else
+        echo -e "${RED}❌ $1${NC}"
+        echo -e "${YELLOW}⚠️ Continuando a instalação, mas algumas funcionalidades podem estar comprometidas.${NC}"
+    fi
+}
+
+# Atualização e instalação dos pacotes do sistema
+echo -e "${YELLOW}📦 Atualizando pacotes e instalando dependências...${NC}"
+sudo apt update && sudo apt install -y python3 python3-pip python3-venv tor unzip curl wget gnupg2 firefox-esr xvfb
+check_success "Instalação de pacotes do sistema"
+
+# Adiciona repositório do Tor Project para versão mais recente
+echo -e "${YELLOW}🧅 Adicionando repositório oficial do Tor Project...${NC}"
+if [ ! -f /etc/apt/sources.list.d/tor.list ]; then
+    echo "deb [signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/tor.list
+    wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | sudo tee /usr/share/keyrings/tor-archive-keyring.gpg >/dev/null
+    sudo apt update && sudo apt install -y tor deb.torproject.org-keyring
+    check_success "Adição do repositório oficial do Tor"
+else
+    echo -e "${GREEN}✅ Repositório do Tor já configurado${NC}"
+fi
+
+# Habilita e inicia o serviço Tor
+echo -e "${YELLOW}🧅 Configurando serviço Tor...${NC}"
+sudo systemctl enable tor
+sudo systemctl restart tor
+sleep 3  # Aguarda inicialização do serviço
+
+# Verifica se o Tor está escutando na porta 9050
+if ss -ltn | grep -q ":9050"; then
+    echo -e "${GREEN}✅ Tor está ativo na porta 9050.${NC}"
+else
+    echo -e "${RED}❌ Tor não está rodando corretamente na porta 9050.${NC}"
+    echo -e "${YELLOW}⚠️ Tentando iniciar o serviço manualmente...${NC}"
+    sudo systemctl restart tor
+    sleep 5
+    
+    if ss -ltn | grep -q ":9050"; then
+        echo -e "${GREEN}✅ Tor iniciado com sucesso na segunda tentativa.${NC}"
+    else
+        echo -e "${RED}❌ Falha ao iniciar o Tor. Verificando logs...${NC}"
+        sudo journalctl -u tor --no-pager -n 20
+        echo -e "${YELLOW}⚠️ O sistema continuará a instalação, mas as buscas em .onion serão simuladas.${NC}"
+    fi
+fi
+
+# Instalação do geckodriver para Selenium
+echo -e "${YELLOW}🦊 Instalando geckodriver para Selenium...${NC}"
+GECKO_VERSION="v0.33.0"
+GECKO_URL="https://github.com/mozilla/geckodriver/releases/download/${GECKO_VERSION}/geckodriver-${GECKO_VERSION}-linux64.tar.gz"
+
+if [ ! -f /usr/local/bin/geckodriver ]; then
+    wget -q $GECKO_URL -O /tmp/geckodriver.tar.gz
+    sudo tar -xzf /tmp/geckodriver.tar.gz -C /tmp/
+    sudo mv /tmp/geckodriver /usr/local/bin/
+    sudo chmod +x /usr/local/bin/geckodriver
+    check_success "Instalação do geckodriver"
+else
+    echo -e "${GREEN}✅ Geckodriver já instalado${NC}"
+fi
+
+# Criação do ambiente virtual
+echo -e "${YELLOW}📁 Criando ambiente virtual Python...${NC}"
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    check_success "Criação do ambiente virtual"
+else
+    echo -e "${GREEN}✅ Ambiente virtual já existe${NC}"
+fi
+
+# Ativando o ambiente virtual
+source venv/bin/activate
+
+# Atualizando pip e instalando dependências
+echo -e "${YELLOW}🐍 Instalando pacotes Python...${NC}"
+pip install --upgrade pip
+check_success "Atualização do pip"
+
+# Instalando dependências principais
+echo -e "${YELLOW}📚 Instalando dependências principais...${NC}"
+pip install -r requirements.txt
+check_success "Instalação de dependências do requirements.txt"
+
+# Instalando dependências adicionais necessárias
+echo -e "${YELLOW}🔌 Instalando dependências adicionais...${NC}"
+pip install requests[socks] PySocks beautifulsoup4 selenium seleniumwire webdriver-manager lxml
+check_success "Instalação de dependências adicionais"
+
+# Testando a conexão Tor
+echo -e "${YELLOW}🧪 Testando conexão Tor...${NC}"
+python3 -c "
+import requests
+import sys
+try:
+    print('Verificando conexão Tor...')
+    response = requests.get('https://check.torproject.org', 
+                           proxies={'http': 'socks5h://127.0.0.1:9050', 
+                                   'https': 'socks5h://127.0.0.1:9050'}, 
+                           timeout=30)
+    if 'Congratulations' in response.text:
+        print('✅ Conexão Tor funcionando corretamente!')
+        sys.exit(0)
+    else:
+        print('⚠️ Conexão estabelecida, mas não está usando Tor.')
+        sys.exit(1)
+except Exception as e:
+    print(f'❌ Erro ao testar conexão Tor: {e}')
+    sys.exit(1)
+"
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ Conexão Tor verificada com sucesso!${NC}"
+else
+    echo -e "${YELLOW}⚠️ Conexão Tor não está funcionando corretamente. Buscas em .onion serão simuladas.${NC}"
+fi
+
+# Criando banco de dados inicial
+echo -e "${YELLOW}🗄️ Inicializando banco de dados...${NC}"
+python3 -c "
+import sys
+sys.path.append('.')
+try:
+    from db import init_db
+    init_db()
+    print('✅ Banco de dados inicializado com sucesso!')
+    sys.exit(0)
+except Exception as e:
+    print(f'❌ Erro ao inicializar banco de dados: {e}')
+    sys.exit(1)
+"
+check_success "Inicialização do banco de dados"
+
+# Criando fontes padrão
+echo -e "${YELLOW}🔍 Criando fontes padrão...${NC}"
+python3 -c "
+import sys
+sys.path.append('.')
+try:
+    from coletor import criar_fontes_padrao
+    criar_fontes_padrao()
+    print('✅ Fontes padrão criadas com sucesso!')
+    sys.exit(0)
+except Exception as e:
+    print(f'❌ Erro ao criar fontes padrão: {e}')
+    sys.exit(1)
+"
+check_success "Criação de fontes padrão"
+
+# Mensagem final de instruções
+echo ""
+echo -e "${GREEN}✅ Instalação concluída com sucesso.${NC}"
+echo -e "${YELLOW}🚀 Para rodar a aplicação, use o comando abaixo:${NC}"
+echo ""
+echo -e "   ${GREEN}source venv/bin/activate && python3 app.py${NC}"
+echo ""
+echo -e "${YELLOW}🧪 Para testar o funcionamento da conexão via Tor, use:${NC}"
+echo ""
+echo -e "   ${GREEN}python3 torcheck.py${NC}"
+echo ""
+echo -e "${YELLOW}📋 Documentação e instruções adicionais:${NC}"
+echo -e "   ${GREEN}MANUAL.md${NC}"

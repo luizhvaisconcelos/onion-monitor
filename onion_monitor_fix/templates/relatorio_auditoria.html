@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Relatório de Auditoria - Onion Monitor v1{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-chart-pie"></i> Relatório de Auditoria - {{ periodo|title }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card bg-primary text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="me-3">
+                                        <div class="text-white-75 small">Total de Eventos</div>
+                                        <div class="text-lg fw-bold">{{ relatorio.total_eventos }}</div>
+                                    </div>
+                                    <i class="fas fa-clipboard-list fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card bg-success text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="me-3">
+                                        <div class="text-white-75 small">Buscas Realizadas</div>
+                                        <div class="text-lg fw-bold">
+                                            {% set buscas = 0 %}
+                                            {% for tipo in relatorio.contagem_por_tipo %}
+                                                {% if tipo.acao is defined and tipo.acao == 'busca' %}
+                                                    {% set buscas = tipo.quantidade %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {{ buscas }}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-search fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card bg-warning text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="me-3">
+                                        <div class="text-white-75 small">Validações</div>
+                                        <div class="text-lg fw-bold">
+                                            {% set validacoes = 0 %}
+                                            {% for tipo in relatorio.contagem_por_tipo %}
+                                                {% if tipo.acao is defined and tipo.acao == 'validacao' %}
+                                                    {% set validacoes = tipo.quantidade %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            {{ validacoes }}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-check-circle fa-2x text-white-50"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-pie me-1"></i>
+                                Distribuição de Eventos
+                            </div>
+                            <div class="card-body">
+                                <canvas id="eventosChart" width="100%" height="50"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-list me-1"></i>
+                                Detalhamento por Tipo
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Tipo de Evento</th>
+                                                <th>Quantidade</th>
+                                                <th>Percentual</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for tipo in relatorio.contagem_por_tipo %}
+                                            <tr>
+                                                <td>{{ tipo.acao|title if tipo.acao is defined else tipo[0]|title }}</td>
+                                                <td>{{ tipo.quantidade if tipo.quantidade is defined else tipo[1] }}</td>
+                                                <td>
+                                                    {% set qtd = tipo.quantidade if tipo.quantidade is defined else tipo[1] %}
+                                                    {% set percentual = (qtd / relatorio.total_eventos * 100)|round(1) if relatorio.total_eventos > 0 else 0 %}
+                                                    <div class="progress">
+                                                        <div class="progress-bar bg-info" role="progressbar" 
+                                                             style="width: {{ percentual }}%;" 
+                                                             aria-valuenow="{{ percentual }}" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">{{ percentual }}%</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-lg-12 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-file-export me-1"></i>
+                                Exportar Relatório
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{{ url_for('exportar_auditoria', periodo=periodo) }}" class="btn btn-success">
+                                        <i class="fas fa-file-csv"></i> Exportar para CSV
+                                    </a>
+                                    <a href="{{ url_for('registros') }}" class="btn btn-info">
+                                        <i class="fas fa-list"></i> Ver Registros Detalhados
+                                    </a>
+                                    <div class="dropdown ms-2">
+                                        <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-calendar"></i> Mudar Período
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <li><a class="dropdown-item" href="{{ url_for('relatorio_auditoria', periodo='hoje') }}">Hoje</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('relatorio_auditoria', periodo='semana') }}">Última Semana</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('relatorio_auditoria', periodo='mes') }}">Último Mês</a></li>
+                                            <li><a class="dropdown-item" href="{{ url_for('relatorio_auditoria', periodo='total') }}">Total</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comentários e créditos -->
+<!--
+Desenvolvido por Luiz Vaisconcelos
+Email: luiz.vaisconcelos@gmail.com
+LinkedIn: https://www.linkedin.com/in/vaisconcelos/
+GitHub: https://github.com/luizhvaisconcelos
+-->
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Dados para o gráfico de eventos
+    var eventosData = {
+        labels: [
+            {% for tipo in relatorio.contagem_por_tipo %}
+                "{{ tipo.acao|title if tipo.acao is defined else tipo[0]|title }}",
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Eventos por Tipo',
+            data: [
+                {% for tipo in relatorio.contagem_por_tipo %}
+                    {{ tipo.quantidade if tipo.quantidade is defined else tipo[1] }},
+                {% endfor %}
+            ],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 159, 64, 0.7)',
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(255, 205, 86, 0.7)'
+            ],
+            borderColor: [
+                'rgb(75, 192, 192)',
+                'rgb(54, 162, 235)',
+                'rgb(153, 102, 255)',
+                'rgb(255, 159, 64)',
+                'rgb(255, 99, 132)',
+                'rgb(255, 205, 86)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    // Configuração do gráfico de eventos
+    var eventosCtx = document.getElementById('eventosChart').getContext('2d');
+    var eventosChart = new Chart(eventosCtx, {
+        type: 'doughnut',
+        data: eventosData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Distribuição de Eventos por Tipo'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
