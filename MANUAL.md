@@ -1,232 +1,230 @@
-# Onion Monitor v1 - Manual do Usuário
+# Documentação Técnica do Onion Monitor
 
-## Introdução
+## Visão Geral do Sistema
 
-O Onion Monitor v1 é um sistema de monitoramento de vazamentos com coleta de links .onion e análise de dados. Ele permite buscar termos sensíveis em diversas fontes da surface web e dark web, validar automaticamente os resultados encontrados, e manter um registro completo de todas as operações realizadas.
+O Onion Monitor é uma ferramenta de monitoramento e busca de vazamentos de dados sensíveis na surface web, deep web e dark web. O sistema utiliza técnicas avançadas de coleta, validação semântica e análise para identificar possíveis vazamentos de informações confidenciais.
 
-Este manual fornece instruções detalhadas sobre como instalar, configurar e utilizar o sistema.
+## Arquitetura do Sistema
 
-## Índice
+O Onion Monitor foi desenvolvido com uma arquitetura modular, composta pelos seguintes componentes principais:
 
-1. [Instalação](#instalação)
-2. [Configuração](#configuração)
-3. [Funcionalidades Principais](#funcionalidades-principais)
-   - [Busca de Termos](#busca-de-termos)
-   - [Análise de Resultados](#análise-de-resultados)
-   - [Cadastro de Fontes](#cadastro-de-fontes)
-   - [Ferramentas](#ferramentas)
-   - [Registros de Auditoria](#registros-de-auditoria)
-4. [Agendamento de Buscas](#agendamento-de-buscas)
-5. [Validação de Vazamentos](#validação-de-vazamentos)
-6. [Exportação de Dados](#exportação-de-dados)
-7. [Manutenção](#manutenção)
-8. [Solução de Problemas](#solução-de-problemas)
+1. **Interface Web (Flask)**: Frontend para interação com o usuário
+2. **Módulo de Coleta**: Responsável pela busca e coleta de dados em diferentes fontes
+3. **Módulo de Validação**: Analisa e valida os dados coletados para identificar vazamentos reais
+4. **Banco de Dados**: Armazena fontes, coletas, validações e registros de auditoria
+5. **Integração Tor**: Permite acesso seguro a sites .onion na dark web
 
-## Instalação
+## Requisitos do Sistema
 
-### Requisitos
+### Requisitos de Hardware
+- CPU: 2 cores ou superior
+- RAM: 4GB ou superior
+- Armazenamento: 10GB de espaço livre
 
+### Requisitos de Software
+- Sistema Operacional: Linux (Ubuntu/Debian recomendado)
 - Python 3.6 ou superior
-- Pip (gerenciador de pacotes do Python)
-- Navegador web moderno (Chrome, Firefox, Edge, etc.)
+- Tor (para acesso à dark web)
+- Navegador web moderno (Chrome, Firefox)
 
-### Passos para Instalação
+## Instalação e Configuração
 
-1. **Descompacte o arquivo ZIP** em um diretório de sua escolha.
+### Instalação Automatizada
 
-2. **Abra um terminal ou prompt de comando** e navegue até o diretório onde o sistema foi descompactado:
-   ```
-   cd caminho/para/onion_monitor_v1
-   ```
+1. Clone ou descompacte o repositório em um diretório de sua escolha
+2. Navegue até o diretório do projeto
+3. Execute o script de instalação com privilégios de administrador:
 
-3. **Instale as dependências** necessárias:
-   ```
-   pip install -r requirements.txt
-   ```
-   
-   Se você tiver Python 2 e 3 instalados no mesmo sistema, talvez precise usar `pip3` em vez de `pip`.
+```bash
+sudo chmod +x install.sh
+sudo ./install.sh
+```
 
-4. **Execute o aplicativo**:
-   ```
-   python app.py
-   ```
-   
-   Ou, se você tiver múltiplas versões do Python:
-   ```
-   python3 app.py
-   ```
+O script realizará as seguintes ações:
+- Instalação das dependências do sistema
+- Configuração do ambiente virtual Python
+- Instalação das bibliotecas Python necessárias
+- Inicialização do banco de dados
+- Verificação da conexão com a rede Tor
+- Configuração de permissões e diretórios
 
-5. **Acesse o sistema** abrindo seu navegador e navegando para:
-   ```
-   http://localhost:5000
-   ```
+### Instalação Manual
 
-## Configuração
+Se preferir realizar a instalação manualmente, siga os passos abaixo:
 
-O sistema já vem pré-configurado com fontes padrão para busca na dark web. No entanto, você pode personalizar as seguintes configurações:
+1. Instale as dependências do sistema:
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv tor sqlite3 curl git
+```
 
-### Fontes de Busca
+2. Crie e ative um ambiente virtual Python:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
 
-Acesse a página de **Cadastro** para adicionar, editar ou desativar fontes de busca. As fontes padrão incluem:
+3. Instale as dependências Python:
+```bash
+pip install -r requirements.txt
+```
 
-- Ahmia (mecanismo de busca para .onion)
-- Dark.fail (lista de sites .onion)
-- Onion.live (diretório de serviços onion)
-- Tor.taxi (lista de links .onion)
-- Onion.land (lista de links .onion)
-- DarkSearch (mecanismo de busca para .onion)
+4. Inicialize o banco de dados:
+```bash
+python -c "from db import init_db, migrar_banco; init_db(); migrar_banco()"
+```
 
-### Banco de Dados
+5. Verifique a conexão com Tor:
+```bash
+python torcheck.py
+```
 
-O sistema utiliza SQLite como banco de dados, armazenado no arquivo `onion_monitor.db`. Não é necessária nenhuma configuração adicional para o banco de dados.
+## Estrutura de Diretórios
+
+```
+omonitor/
+├── app.py                    # Aplicação principal Flask
+├── coletor.py                # Módulo de coleta e busca
+├── db.py                     # Módulo de banco de dados
+├── busca_valida_semantica.py # Módulo de validação semântica
+├── requirements.txt          # Dependências Python
+├── install.sh                # Script de instalação
+├── torcheck.py               # Verificador de conexão Tor
+├── static/                   # Arquivos estáticos
+│   ├── css/                  # Folhas de estilo CSS
+│   ├── js/                   # Arquivos JavaScript
+│   └── images/               # Imagens e recursos visuais
+├── templates/                # Templates HTML
+│   ├── base.html             # Template base
+│   ├── index.html            # Página inicial
+│   ├── resultados.html       # Página de resultados
+│   ├── analise.html          # Página de análise
+│   ├── cadastro.html         # Página de cadastro
+│   ├── ferramentas.html      # Página de ferramentas
+│   └── registros.html        # Página de registros
+└── logs/                     # Arquivos de log
+    ├── app.log               # Log da aplicação
+    ├── coletor.log           # Log do coletor
+    ├── db.log                # Log do banco de dados
+    └── busca_semantica.log   # Log de busca semântica
+```
 
 ## Funcionalidades Principais
 
-### Busca de Termos
+### Busca de Vazamentos
 
-A página inicial do sistema permite buscar termos sensíveis nas fontes cadastradas.
+O sistema permite buscar termos sensíveis em diversas fontes da web, incluindo sites da surface web, deep web e dark web. Para realizar uma busca:
 
-1. Digite o termo que deseja buscar no campo de busca.
-2. Clique no botão "Buscar".
-3. O sistema irá buscar o termo em todas as fontes ativas e exibir os resultados encontrados.
-4. Os resultados são automaticamente validados e classificados como vazamentos reais ou não.
+1. Acesse a página inicial
+2. Digite o termo a ser buscado no campo de busca
+3. Clique no botão "Buscar Vazamentos"
+4. Aguarde o processamento da busca
+5. Visualize os resultados na tabela
 
-### Análise de Resultados
+### Validação de Vazamentos
 
-A página de **Análise** fornece estatísticas e gráficos sobre os resultados encontrados.
+Cada resultado encontrado passa por um processo de validação para determinar se é um vazamento real:
 
-- Total de coletas realizadas
-- Total de termos buscados
-- Total de fontes utilizadas
-- Total de vazamentos validados
-- Gráficos de coletas por fonte, por dia e por termo
-- Lista das últimas validações realizadas
+- **Validação Automática**: O sistema analisa o contexto, conteúdo e características do link para atribuir um score de validação
+- **Validação Manual**: O usuário pode validar manualmente um resultado clicando no botão de validação
 
-### Cadastro de Fontes
+### Gerenciamento de Fontes
 
-A página de **Cadastro** permite gerenciar as fontes de busca.
+O sistema permite cadastrar e gerenciar fontes de busca:
 
-- Adicionar novas fontes
-- Editar fontes existentes
-- Ativar ou desativar fontes
-- Visualizar o status atual de cada fonte
+1. Acesse a página "Cadastro"
+2. Preencha os campos com as informações da fonte
+3. Clique em "Adicionar Fonte"
 
-### Ferramentas
+Para verificar o status das fontes:
 
-A página de **Ferramentas** oferece funcionalidades adicionais:
+1. Acesse a página "Ferramentas"
+2. Clique em "Verificar" ao lado da fonte desejada
 
-- **Verificação de Fontes**: Verifica o status de todas as fontes cadastradas e atualiza automaticamente.
-- **Agendamento de Buscas**: Configura buscas automáticas para serem executadas periodicamente.
-- **Exportação de Dados**: Exporta os resultados das buscas para arquivos CSV.
-- **Relatórios de Auditoria**: Visualiza relatórios detalhados de todas as atividades do sistema.
-- **Validação Manual**: Valida manualmente resultados que não foram validados automaticamente.
-- **Registros de Atividade**: Visualiza o histórico completo de atividades e operações do sistema.
+### Exportação de Dados
+
+Os resultados das buscas podem ser exportados em formato CSV:
+
+1. Realize uma busca
+2. Clique no botão "Exportar para CSV"
+3. Salve o arquivo no local desejado
 
 ### Registros de Auditoria
 
-A página de **Registros** exibe um histórico completo de todas as operações realizadas no sistema, incluindo:
+O sistema mantém registros de todas as ações realizadas:
 
-- Buscas realizadas
-- Validações de vazamentos
-- Verificações de fontes
-- Exportações de dados
-- Outras atividades administrativas
+1. Acesse a página "Registros"
+2. Visualize o histórico de ações
+3. Utilize os filtros para refinar a visualização
 
-## Agendamento de Buscas
+## Integração com Tor
 
-O sistema permite agendar buscas automáticas para serem executadas periodicamente.
+O Onion Monitor utiliza a rede Tor para acessar sites .onion na dark web. Para garantir o funcionamento correto:
 
-### No Linux/Mac (usando Cron)
+1. Verifique se o serviço Tor está em execução:
+```bash
+sudo systemctl status tor
+```
 
-1. Acesse a página de **Ferramentas** e clique em "Agendar Buscas".
-2. Preencha o termo que deseja buscar e o intervalo de tempo.
-3. O sistema irá gerar um comando para ser adicionado ao crontab.
-4. Abra o terminal e execute:
-   ```
-   crontab -e
-   ```
-5. Adicione o comando gerado e salve o arquivo.
+2. Se não estiver em execução, inicie-o:
+```bash
+sudo systemctl start tor
+```
 
-### No Windows (usando Agendador de Tarefas)
-
-1. Acesse a página de **Ferramentas** e clique em "Agendar Buscas".
-2. Preencha o termo que deseja buscar e o intervalo de tempo.
-3. O sistema irá gerar um comando para ser usado no Agendador de Tarefas.
-4. Abra o Agendador de Tarefas do Windows.
-5. Crie uma nova tarefa e configure-a com o comando gerado.
-
-## Validação de Vazamentos
-
-O sistema valida automaticamente os resultados encontrados, atribuindo um score de 0 a 100 para cada resultado. Um resultado é considerado um vazamento real se o score for igual ou superior a 40.
-
-### Critérios de Validação
-
-Os critérios utilizados para validação incluem:
-
-- Presença de palavras-chave relacionadas a vazamentos no link ou título
-- Presença do termo buscado no link ou título
-- Presença de extensões de arquivo comuns em vazamentos
-- Presença de números que podem indicar datas ou quantidades
-- Presença de domínios conhecidos de fóruns de vazamento
-- Presença de palavras relacionadas a fóruns ou comunidades
-
-### Validação Manual
-
-Você também pode validar manualmente resultados que não foram validados automaticamente:
-
-1. Na página inicial, localize o resultado que deseja validar.
-2. Clique no botão de validação (ícone de check) ao lado do resultado.
-3. O sistema irá marcar o resultado como validado e atribuir um score alto.
-
-## Exportação de Dados
-
-O sistema permite exportar os resultados das buscas para arquivos CSV.
-
-1. Acesse a página de **Ferramentas** e clique em "Exportar CSV".
-2. O sistema irá gerar um arquivo CSV com todos os resultados encontrados.
-3. Você também pode exportar apenas os resultados de um termo específico, adicionando o parâmetro `termo` à URL.
-
-## Manutenção
-
-### Verificação de Fontes
-
-É recomendável verificar regularmente o status das fontes cadastradas:
-
-1. Acesse a página de **Ferramentas** e clique em "Verificar Fontes".
-2. O sistema irá verificar o status de todas as fontes e atualizar automaticamente.
-3. Fontes inativas serão marcadas como tal e não serão utilizadas nas buscas.
-
-### Backup do Banco de Dados
-
-É recomendável fazer backup regular do banco de dados:
-
-1. Localize o arquivo `onion_monitor.db` no diretório do sistema.
-2. Copie este arquivo para um local seguro.
+3. Verifique a conexão com Tor:
+```bash
+python torcheck.py
+```
 
 ## Solução de Problemas
 
-### Erro ao iniciar o sistema
+### Problemas de Conexão com Tor
 
-Se o sistema não iniciar corretamente, verifique:
+Se o sistema não conseguir conectar-se à rede Tor:
 
-1. Se todas as dependências foram instaladas corretamente.
-2. Se o arquivo `onion_monitor.db` existe e não está corrompido.
-3. Se a porta 5000 não está sendo utilizada por outro aplicativo.
+1. Verifique se o serviço Tor está em execução
+2. Confirme se a porta 9050 está disponível e não bloqueada por firewall
+3. Reinicie o serviço Tor: `sudo systemctl restart tor`
 
-### Erro ao buscar termos
+### Erros de Banco de Dados
 
-Se ocorrerem erros durante a busca de termos, verifique:
+Se ocorrerem erros relacionados ao banco de dados:
 
-1. Se as fontes cadastradas estão ativas e acessíveis.
-2. Se o sistema tem acesso à internet.
-3. Se o termo buscado não contém caracteres especiais que possam causar problemas.
+1. Verifique as permissões do arquivo de banco de dados: `chmod 666 onion_monitor.db`
+2. Execute a migração do banco: `python -c "from db import migrar_banco; migrar_banco()"`
+3. Se necessário, reinicialize o banco: `python -c "from db import init_db; init_db()"`
 
-### Erro ao validar resultados
+### Problemas de Dependências
 
-Se ocorrerem erros durante a validação de resultados, verifique:
+Se houver erros relacionados a bibliotecas Python:
 
-1. Se o banco de dados está funcionando corretamente.
-2. Se o resultado que está tentando validar ainda existe no banco.
+1. Verifique se todas as dependências estão instaladas: `pip list`
+2. Reinstale as dependências: `pip install -r requirements.txt`
+3. Atualize o pip: `pip install --upgrade pip`
+
+## Segurança e Boas Práticas
+
+- **Não utilize** o sistema para fins ilegais ou antiéticos
+- Mantenha o sistema atualizado com as últimas correções de segurança
+- Utilize o sistema em uma rede segura e isolada
+- Não compartilhe credenciais ou informações sensíveis encontradas
+- Reporte vazamentos legítimos às autoridades competentes
+
+## Manutenção e Atualizações
+
+Para manter o sistema funcionando corretamente:
+
+1. Verifique regularmente o status das fontes
+2. Atualize as dependências periodicamente
+3. Monitore os logs para identificar possíveis problemas
+4. Faça backup do banco de dados regularmente
+
+## Suporte e Contato
+
+Para suporte técnico ou dúvidas sobre o sistema, entre em contato:
+
+- Email: luizhvaisconcelos@gmail.com
+- GitHub: https://github.com/luizhvaisconcelos/onion-monitor
 
 ---
 
