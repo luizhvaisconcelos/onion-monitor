@@ -1,0 +1,268 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends 'base.html' %}
+{% block titulo %}Resultados{% endblock %}
+{% block conteudo %}
+<div id="main-content">
+    <div class="row">
+        <div class="col-lg-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="fas fa-list"></i> Últimos Resultados de Busca</h4>
+                </div>
+                <div class="card-body">
+                    {% if coletas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 5%">ID</th>
+                                    <th style="width: 15%">Termo</th>
+                                    <th style="width: 20%">Fonte</th>
+                                    <th style="width: 25%">Link</th>
+                                    <th style="width: 10%">Status</th>
+                                    <th style="width: 10%">Score</th>
+                                    <th style="width: 15%">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for resultado in coletas %}
+                                <tr id="row-{{ resultado.id }}">
+                                    <td>{{ resultado.id }}</td>
+                                    <td>{{ resultado.termo_busca }}</td>
+                                    <td>{{ resultado.fonte_nome or 'Desconhecida' }}</td>
+                                    <td>
+                                        <a href="{{ resultado.link_encontrado }}" target="_blank" class="onion-link">{{ resultado.link_encontrado }}</a>
+                                    </td>
+                                    <td id="status-{{ resultado.id }}">
+                                        {% if resultado.validado is not none %}
+                                        <span class="badge bg-{% if resultado.validado %}success{% else %}danger{% endif %}">
+                                            {{ resultado.validado|yesno:'Validado,Pendente' }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Não validado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td id="score-{{ resultado.id }}">
+                                        {% if resultado.score_validacao %}
+                                        <div class="progress">
+                                            <div class="progress-bar {% if resultado.score_validacao >= 70 %}bg-success{% elif resultado.score_validacao >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                                                role="progressbar" style="width: {{ resultado.score_validacao }}%"
+                                                aria-valuenow="{{ resultado.score_validacao }}" aria-valuemin="0" aria-valuemax="100">
+                                                {{ resultado.score_validacao }}%
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-action copy-btn" data-clipboard-text="{{ resultado.link_encontrado }}"
+                                                    data-bs-toggle="tooltip" title="Copiar link">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-action view" data-bs-toggle="tooltip" title="Visualizar">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if resultado.validado is none or not resultado.validado %}
+                                            <button class="btn btn-sm btn-action validate-btn" data-bs-toggle="tooltip" title="Validar manualmente"
+                                                    onclick="validateLink({{ resultado.id }})">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% if resultado.observacoes_validacao %}
+                                <tr>
+                                    <td colspan="7" class="small text-muted">
+                                        <i class="fas fa-info-circle"></i> {{ resultado.observacoes_validacao }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('exportar_csv') }}?termo={{ termo }}" class="btn btn-success">
+                            <i class="fas fa-file-csv"></i> Exportar para CSV
+                        </a>
+                        <a href="{{ url_for('registros') }}" class="btn btn-info ms-2">
+                            <i class="fas fa-history"></i> Ver Registros de Auditoria
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="alert alert-info animate__animated animate__fadeIn" role="alert">
+                                <i class="fas fa-info-circle"></i> Nenhum vazamento encontrado para o termo "<strong>{{ termo }}</strong>".
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    new ClipboardJS('.copy-btn');
+    document.addEventListener('DOMContentLoaded', function() {
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        document.body.addEventListener('click', function(event) {
+            const btn = event.target.closest('.btn-action.view');
+            if (!btn) return;
+            const row = btn.closest('tr');
+            const link = row.querySelector('.onion-link').textContent;
+            const title = row.cells[3].textContent;
+            const source = row.cells[2].textContent;
+            const modalHtml = `
+                <div class="modal fade" id="linkDetailModal" tabindex="-1" aria-labelledby="linkDetailModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-dark text-white">
+                                <h5 class="modal-title" id="linkDetailModalLabel">Detalhes do Link</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <h6>Link:</h6>
+                                    <div class="onion-link p-2" style="word-break: break-all;">${link}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Título:</h6>
+                                    <p>${title}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <h6>Fonte:</h6>
+                                    <p>${source}</p>
+                                </div>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Atenção:</strong> Este link pode conter conteúdo sensível ou ilegal. Acesse com cautela e apenas em ambientes seguros.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                <button type="button" class="btn btn-primary copy-btn" data-clipboard-text="${link}">
+                                    <i class="fas fa-copy"></i> Copiar Link
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const existingModal = document.getElementById('linkDetailModal');
+            if (existingModal) existingModal.remove();
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHtml;
+            document.body.appendChild(modalContainer);
+            const modal = new bootstrap.Modal(document.getElementById('linkDetailModal'));
+            modal.show();
+            new ClipboardJS('.modal-content .copy-btn');
+            document.getElementById('linkDetailModal').addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modalContainer);
+            });
+        });
+    });
+    window.validateLink = function(id) {
+        const btn = document.querySelector(`#row-${id} .validate-btn`);
+        if (!btn) {
+            console.error(`Botão de validação não encontrado para ID ${id}`);
+            return;
+        }
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = `<img src="/static/images/charmeleon_evolving.gif" alt="Validando..." style="height: 16px; width: auto;"> Validando...`;
+        btn.disabled = true;
+        fetch(`/validar-manualmente/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            if (data.success) {
+                document.getElementById(`status-${id}`).innerHTML = '<span class="badge bg-success">Validado</span>';
+                const scoreClass = data.score >= 70 ? 'bg-success' : data.score >= 50 ? 'bg-warning' : 'bg-danger';
+                document.getElementById(`score-${id}`).innerHTML = `
+                    <div class="progress">
+                        <div class="progress-bar ${scoreClass}" role="progressbar"
+                             style="width: ${data.score}%"
+                             aria-valuenow="${data.score}" aria-valuemin="0" aria-valuemax="100">
+                            ${data.score}%
+                        </div>
+                    </div>
+                `;
+                document.getElementById(`row-${id}`).classList.add('table-success');
+                const alertDiv = document.createElement('div');
+                alertDiv.classList.add('alert', 'alert-success', 'alert-dismissible', 'fade', 'show');
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `Link validado com sucesso! Score: ${data.score}%`;
+                alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                document.getElementById('main-content').prepend(alertDiv);
+            } else {
+                const alertDiv = document.createElement('div');
+                alertDiv.classList.add('alert', 'alert-danger', 'alert-dismissible', 'fade', 'show');
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `Erro ao validar link: ${data.error || 'Erro desconhecido'}`;
+                alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                document.getElementById('main-content').prepend(alertDiv);
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+            console.error('Erro:', error);
+            const alertDiv = document.createElement('div');
+            alertDiv.classList.add('alert', 'alert-danger', 'alert-dismissible', 'fade', 'show');
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `Erro ao validar link: ${error}`;
+            alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+            document.getElementById('main-content').prepend(alertDiv);
+        });
+    };
+</script>
+{% endblock %}

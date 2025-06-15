@@ -1,0 +1,121 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script>{% extends 'base.html' %}
+{% block titulo %}Instruções de Agendamento{% endblock %}
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-calendar-alt"></i> Instruções de Agendamento</h4>
+            </div>
+            <div class="card-body">
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">1. Pré-requisitos</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Certifique-se de que:</p>
+                        <ul>
+                            <li>O ambiente virtual está configurado e ativado.</li>
+                            <li>O arquivo <code>busca_agendada.py</code> está presente na pasta raiz.</li>
+                            <li>O arquivo <code>termos_busca.txt</code> contém os termos a serem monitorados.</li>
+                            <li>O sistema operacional suporta execução de scripts Python.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">2. Configuração do Arquivo de Termos</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Edite o arquivo <code>termos_busca.txt</code> na pasta raiz do sistema, inserindo cada termo em uma linha separada:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>senha
+credencial
+acesso
+confidencial
+vazamento
+dados_sensiveis
+</code></pre>
+                        <p>O sistema buscará automaticamente cada termo listado durante a execução agendada.</p>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">3. Configuração do Script de Busca Agendada</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Verifique se o arquivo <code>busca_agendada.py</code> está na pasta raiz e possui permissões de execução:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>chmod +x busca_agendada.py</code></pre>
+                        <p>Teste a execução manualmente:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>./busca_agendada.py</code></pre>
+                        <p>Para agendar a execução automática, adicione ao crontab (Linux/macOS):</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>crontab -e
+0 2 * * * /caminho/para/onion_monitor_v2/busca_agendada.py >> /caminho/para/busca_agendada.log 2>&1</code></pre>
+                        <p>Este exemplo agenda a busca para 2:00 AM diariamente.</p>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">4. Verificação de Resultados</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Os resultados das buscas agendadas podem ser visualizados em:</p>
+                        <ul>
+                            <li><strong>Página de Resultados:</strong> Acesse <a href="{{ url_for('resultados') }}">Resultados</a> para ver coletas.</li>
+                            <li><strong>Página de Análise:</strong> Gráficos e estatísticas em <a href="{{ url_for('analise') }}">Análise</a>.</li>
+                            <li><strong>Registros de Auditoria:</strong> Logs detalhados em <a href="{{ url_for('registros') }}">Registros</a> com a ação <code>busca_agendada</code>.</li>
+                        </ul>
+                        <p>O arquivo <code>busca_agendada.log</code> na pasta raiz contém o histórico de execução.</p>
+                    </div>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-1"></i> <strong>Atenção:</strong> Configure o agendamento considerando a sensibilidade dos termos e a capacidade do sistema. Buscas frequentes podem sobrecarregar fontes ou o servidor.
+                </div>
+                <div class="mt-4">
+                    <a href="{{ url_for('ferramentas') }}" class="btn btn-primary">
+                        <i class="fas fa-tools"></i> Voltar para Ferramentas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

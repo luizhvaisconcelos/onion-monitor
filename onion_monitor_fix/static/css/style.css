@@ -1,0 +1,26 @@
+/* Estilos personalizados para Onion Monitor v2 */
+body {
+    background-color: #f8f9fa;
+}
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.navbar-dark .navbar-brand {
+    font-weight: bold;
+}
+.table-hover tbody tr:hover {
+    background-color: #f1f1f1;
+}
+.onion-link {
+    word-break: break-all;
+}
+.action-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 5px;
+}
+.action-btn:hover {
+    color: #007bff;
+}

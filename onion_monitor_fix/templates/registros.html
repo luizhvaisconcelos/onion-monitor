@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Registros de Auditoria - Onion Monitor v1{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-history"></i> Registros de Auditoria</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('registros') }}" method="get" class="search-form mb-4">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter"></i> Filtrar Registros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%">ID</th>
+                                <th style="width: 15%">Data/Hora</th>
+                                <th style="width: 15%">Ação</th>
+                                <th style="width: 35%">Descrição</th>
+                                <th style="width: 30%">Dados</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for registro in registros %}
+                            <tr>
+                                <td>{{ registro.id }}</td>
+                                <td>{{ registro.data_registro }}</td>
+                                <td>
+                                    {% if registro.acao == 'busca' or registro.acao == 'iniciar_busca' or registro.acao == 'concluir_busca' %}
+                                    <span class="badge bg-primary">{{ registro.acao|title }}</span>
+                                    {% elif registro.acao == 'validacao' or registro.acao == 'validacao_manual' %}
+                                    <span class="badge bg-success">{{ registro.acao|title }}</span>
+                                    {% elif registro.acao == 'erro' %}
+                                    <span class="badge bg-danger">{{ registro.acao|title }}</span>
+                                    {% elif registro.acao == 'exportacao_csv' or registro.acao == 'exportacao_auditoria' %}
+                                    <span class="badge bg-info">{{ registro.acao|title }}</span>
+                                    {% elif registro.acao == 'verificar_fonte' %}
+                                    <span class="badge bg-warning">{{ registro.acao|title }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ registro.acao|title }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ registro.descricao }}</td>
+                                <td>
+                                    {% if registro.dados %}
+                                    <button class="btn btn-sm btn-outline-secondary" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#dados-{{ registro.id }}" 
+                                            aria-expanded="false">
+                                        <i class="fas fa-code"></i> Ver Dados
+                                    </button>
+                                    <div class="collapse mt-2" id="dados-{{ registro.id }}">
+                                        <div class="card card-body">
+                                            <pre class="mb-0"><code>{{ registro.dados }}</code></pre>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">Sem dados adicionais</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('relatorio_auditoria', periodo='hoje') }}" class="btn btn-info">
+                        <i class="fas fa-chart-pie"></i> Ver Relatório de Auditoria
+                    </a>
+                    <a href="{{ url_for('exportar_auditoria', periodo='total') }}" class="btn btn-success ms-2">
+                        <i class="fas fa-file-csv"></i> Exportar para CSV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comentários e créditos -->
+<!--
+Desenvolvido por Luiz Vaisconcelos
+Email: luiz.vaisconcelos@gmail.com
+LinkedIn: https://www.linkedin.com/in/vaisconcelos/
+GitHub: https://github.com/luizhvaisconcelos
+-->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Inicializa tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

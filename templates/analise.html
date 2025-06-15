@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Análise de Dados - Onion Monitor v3{% endblock %}
+
+{% block conteudo %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-chart-bar me-2"></i>
+                Análise de Dados Coletados
+            </h2>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">Total de Coletas</h6>
+                        <h3 class="mb-0">{{ total_coletas or 0 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-database fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">Vazamentos Validados</h6>
+                        <h3 class="mb-0">{{ total_validados or 0 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">Termos Únicos</h6>
+                        <h3 class="mb-0">{{ total_termos or 0 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-search fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">Fontes Ativas</h6>
+                        <h3 class="mb-0">{{ total_fontes or 0 }}</h3>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-globe fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <!-- Gráfico de Distribuição de Validação -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Distribuição de Validação
+                    </h5>
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 300px;">
+                    <canvas id="graficoDistribuicao" width="300" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Coletas por Fonte -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Coletas por Fonte
+                    </h5>
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 300px;">
+                    <canvas id="graficoFontes" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabelas de Dados -->
+    <div class="row">
+        <!-- Top Termos Buscados -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list-ol me-2"></i>
+                        Top Termos Buscados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if coletas_por_termo and coletas_por_termo|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Termo</th>
+                                    <th>Quantidade</th>
+                                    <th>Percentual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for termo in coletas_por_termo %}
+                                <tr>
+                                    <td>{{ termo.termo_busca }}</td>
+                                    <td>{{ termo.quantidade }}</td>
+                                    <td>
+                                        {% set percentual = (termo.quantidade / total_coletas * 100) if total_coletas > 0 else 0 %}
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-info" role="progressbar" 
+                                                 style="width: {{ percentual }}%" 
+                                                 aria-valuenow="{{ percentual }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ "%.1f"|format(percentual) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <p>Nenhum termo pesquisado ainda</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coletas por Dia -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Coletas por Dia
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if coletas_por_dia and coletas_por_dia|length > 0 %}
+                    <canvas id="graficoTemporal" width="400" height="200"></canvas>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>Nenhuma coleta registrada</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas Validações -->
+    {% if ultimas_validadas and ultimas_validadas|length > 0 %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-double me-2"></i>
+                        Últimas Validações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Termo</th>
+                                    <th>Link</th>
+                                    <th>Fonte</th>
+                                    <th>Score</th>
+                                    <th>Método</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for validacao in ultimas_validadas %}
+                                <tr>
+                                    <td>{{ validacao.data_validacao }}</td>
+                                    <td>{{ validacao.termo_busca }}</td>
+                                    <td>
+                                        <a href="{{ validacao.link_encontrado }}" target="_blank" 
+                                           class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt me-1"></i>
+                                            {{ validacao.link_encontrado[:50] }}...
+                                        </a>
+                                    </td>
+                                    <td>{{ validacao.fonte_nome }}</td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            {{ validacao.score_validacao }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ validacao.metodo_validacao }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Scripts Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dados da Distribuição de Validação
+    var distribuicaoData = {{ distribuicao_validacao|tojson if distribuicao_validacao else '{"labels":[], "values":[], "colors":[]}' }};
+    
+    // Gráfico de Distribuição de Validação
+    var ctxDistribuicao = document.getElementById('graficoDistribuicao');
+    if (ctxDistribuicao && distribuicaoData.labels && distribuicaoData.labels.length > 0) {
+        new Chart(ctxDistribuicao, {
+            type: 'pie',
+            data: {
+                labels: distribuicaoData.labels,
+                datasets: [{
+                    data: distribuicaoData.values,
+                    backgroundColor: distribuicaoData.colors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                var percentage = ((context.parsed * 100) / total).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        ctxDistribuicao.parentElement.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-chart-pie fa-3x mb-3"></i><p>Nenhum dado de validação disponível</p></div>';
+    }
+
+    // Dados das Coletas por Fonte
+    var fontesData = {{ coletas_por_fonte|tojson if coletas_por_fonte else '{"labels":[], "values":[], "colors":[]}' }};
+    
+    // Gráfico de Coletas por Fonte
+    var ctxFontes = document.getElementById('graficoFontes');
+    if (ctxFontes && fontesData.labels && fontesData.labels.length > 0) {
+        new Chart(ctxFontes, {
+            type: 'bar',
+            data: {
+                labels: fontesData.labels,
+                datasets: [{
+                    label: 'Coletas por Fonte',
+                    data: fontesData.values,
+                    backgroundColor: fontesData.colors,
+                    borderColor: fontesData.colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.y + ' coletas';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        ctxFontes.parentElement.innerHTML = '<div class="text-center text-muted py-4"><i class="fas fa-chart-bar fa-3x mb-3"></i><p>Nenhum dado de fonte disponível</p></div>';
+    }
+
+    // Gráfico Temporal (Coletas por Dia)
+    {% if coletas_por_dia and coletas_por_dia|length > 0 %}
+    var coletas_por_dia = {{ coletas_por_dia|tojson }};
+    var ctxTemporal = document.getElementById('graficoTemporal');
+    if (ctxTemporal && coletas_por_dia.length > 0) {
+        var labels = coletas_por_dia.map(item => item.data);
+        var data = coletas_por_dia.map(item => item.quantidade);
+        
+        new Chart(ctxTemporal, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Coletas por Dia',
+                    data: data,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+
+    // Debug: Log dos dados recebidos
+    console.log('Dados de distribuição:', distribuicaoData);
+    console.log('Dados de fontes:', fontesData);
+    {% if coletas_por_dia %}
+    console.log('Dados temporais:', {{ coletas_por_dia|tojson }});
+    {% endif %}
+});
+</script>
+{% endblock %}

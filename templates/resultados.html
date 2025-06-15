@@ -1,0 +1,26 @@
+
+{% extends 'base.html' %}
+{% block conteudo %}
+<h2>🧾 Últimos Resultados de Busca</h2>
+<p>Exibindo os resultados mais recentes coletados nas buscas realizadas.</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Termo</th>
+      <th>Fonte (.onion)</th>
+      <th>Contexto</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in resultados %}
+    <tr>
+      <td>{{ item.id }}</td>
+      <td>{{ item.termo }}</td>
+      <td><a href="{{ item.url }}" target="_blank">{{ item.url }}</a></td>
+      <td><pre style="white-space: pre-wrap;">{{ item.contexto }}</pre></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

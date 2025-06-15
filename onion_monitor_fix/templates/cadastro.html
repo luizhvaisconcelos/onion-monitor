@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Cadastro de Fontes - Onion Monitor v1{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-database"></i> Cadastro de Fontes de Busca</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('cadastro') }}" method="post" class="search-form">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="nome" class="form-label">Nome da Fonte</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                <input type="text" class="form-control" id="nome" name="nome" placeholder="Ex: DarkSearch" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="url" class="form-label">URL da Fonte</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-link"></i></span>
+                                <input type="url" class="form-control" id="url" name="url" placeholder="Ex: https://darksearch.io/" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="tipo" class="form-label">Tipo de Fonte</label>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="" selected disabled>Selecione...</option>
+                                <option value="surface">Surface Web</option>
+                                <option value="lista">Lista de Links</option>
+                                <option value="forum">Fórum</option>
+                                <option value="marketplace">Marketplace</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="ativo" class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
+                                <label class="form-check-label" for="ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Cadastrar Fonte
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i> <strong>Dica:</strong> Cadastre fontes confiáveis para melhorar a qualidade das buscas. As fontes podem ser sites da surface web que indexam conteúdo .onion ou links diretos para fóruns e marketplaces.
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-list"></i> Fontes Cadastradas</h4>
+                <span class="badge bg-primary">{{ fontes|length }} fontes</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%">ID</th>
+                                <th style="width: 20%">Nome</th>
+                                <th style="width: 30%">URL</th>
+                                <th style="width: 15%">Tipo</th>
+                                <th style="width: 15%">Data Cadastro</th>
+                                <th style="width: 10%">Status</th>
+                                <th style="width: 5%">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fonte in fontes %}
+                            <tr id="fonte-{{ fonte.id }}">
+                                <td>{{ fonte.id }}</td>
+                                <td>{{ fonte.nome }}</td>
+                                <td>
+                                    <a href="{{ fonte.url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 250px;">
+                                        {{ fonte.url }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if fonte.tipo == 'surface' %}
+                                    <span class="badge bg-info">Surface Web</span>
+                                    {% elif fonte.tipo == 'lista' %}
+                                    <span class="badge bg-primary">Lista de Links</span>
+                                    {% elif fonte.tipo == 'forum' %}
+                                    <span class="badge bg-warning">Fórum</span>
+                                    {% elif fonte.tipo == 'marketplace' %}
+                                    <span class="badge bg-danger">Marketplace</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ fonte.tipo|title }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ fonte.data_cadastro }}</td>
+                                <td id="status-{{ fonte.id }}">
+                                    {% if fonte.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="action-btn view" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Verificar status"
+                                                onclick="verificarFonte({{ fonte.id }})">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comentários e créditos -->
+<!--
+Desenvolvido por Luiz Vaisconcelos
+Email: luiz.vaisconcelos@gmail.com
+LinkedIn: https://www.linkedin.com/in/vaisconcelos/
+GitHub: https://github.com/luizhvaisconcelos
+-->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Função para verificar status da fonte
+    window.verificarFonte = function(id) {
+        // Altera o ícone para indicar carregamento
+        var btn = document.querySelector(`#fonte-${id} .action-btn.view i`);
+        var originalIcon = btn.className;
+        btn.className = 'fas fa-spinner fa-spin';
+        
+        fetch(`/verificar-fonte/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                // Restaura o ícone original
+                btn.className = originalIcon;
+                
+                if (data.success) {
+                    // Cria modal para mostrar detalhes
+                    var modalHtml = `
+                        <div class="modal fade" id="fonteStatusModal" tabindex="-1" aria-labelledby="fonteStatusModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-dark text-white">
+                                        <h5 class="modal-title" id="fonteStatusModalLabel">Status da Fonte</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <h6>Status:</h6>
+                                            <p class="${data.status === 'online' ? 'text-success' : 'text-danger'}">
+                                                <i class="fas ${data.status === 'online' ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                                                ${data.status === 'online' ? 'Online' : 'Offline'}
+                                            </p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6>Detalhes:</h6>
+                                            <p>${data.detalhes}</p>
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i> <strong>Informação:</strong> A verificação de status é realizada em tempo real e pode variar dependendo da disponibilidade da fonte.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Adiciona o modal ao DOM
+                    var modalContainer = document.createElement('div');
+                    modalContainer.innerHTML = modalHtml;
+                    document.body.appendChild(modalContainer);
+                    
+                    // Inicializa e mostra o modal
+                    var modal = new bootstrap.Modal(document.getElementById('fonteStatusModal'));
+                    modal.show();
+                    
+                    // Remove o modal do DOM quando for fechado
+                    document.getElementById('fonteStatusModal').addEventListener('hidden.bs.modal', function() {
+                        document.body.removeChild(modalContainer);
+                    });
+                } else {
+                    // Mostra mensagem de erro
+                    var alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger alert-dismissible fade show animate__animated animate__fadeIn';
+                    alertDiv.role = 'alert';
+                    alertDiv.innerHTML = 'Erro ao verificar fonte: ' + (data.message || 'Erro desconhecido');
+                    alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                    
+                    document.querySelector('.main-content').prepend(alertDiv);
+                }
+            })
+            .catch(error => {
+                // Restaura o ícone original
+                btn.className = originalIcon;
+                
+                console.error('Erro:', error);
+                
+                // Mostra mensagem de erro
+                var alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show animate__animated animate__fadeIn';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = 'Erro ao verificar fonte: ' + error;
+                alertDiv.innerHTML += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                
+                document.querySelector('.main-content').prepend(alertDiv);
+            });
+    };
+</script>
+{% endblock %}

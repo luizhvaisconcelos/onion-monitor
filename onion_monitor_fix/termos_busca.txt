@@ -1,0 +1,6 @@
+senha
+credencial
+acesso
+confidencial
+vazamento
+dados_sensiveis

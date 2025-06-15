@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Instruções de Agendamento - Onion Monitor v1{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-calendar-alt"></i> Instruções para Agendamento de Buscas</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> <strong>Informação:</strong> O agendamento de buscas permite monitorar termos sensíveis de forma automática e periódica.
+                </div>
+                
+                <h5 class="mt-4 mb-3">Configuração do Agendamento</h5>
+                <p>Para configurar o agendamento de buscas automáticas, siga os passos abaixo:</p>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">1. Configuração do Cron</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Utilize o crontab do sistema para agendar a execução do script de busca:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>crontab -e</code></pre>
+                        <p>Adicione uma linha para executar o script de busca periodicamente:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code># Executa busca diária às 3h da manhã
+0 3 * * * cd /caminho/para/onion_monitor_v1 && python3 busca_agendada.py</code></pre>
+                        <p>Exemplos de configurações comuns:</p>
+                        <ul>
+                            <li><strong>Diariamente às 3h:</strong> <code>0 3 * * *</code></li>
+                            <li><strong>A cada 6 horas:</strong> <code>0 */6 * * *</code></li>
+                            <li><strong>Semanalmente (domingo às 4h):</strong> <code>0 4 * * 0</code></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">2. Configuração dos Termos de Busca</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Crie um arquivo <code>termos_busca.txt</code> na pasta raiz do sistema com os termos a serem monitorados:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>senha
+credencial
+acesso
+confidencial
+vazamento
+[seu_termo_sensível]</code></pre>
+                        <p>Cada termo deve estar em uma linha separada. O sistema irá buscar cada termo automaticamente.</p>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">3. Script de Busca Agendada</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Crie um arquivo <code>busca_agendada.py</code> na pasta raiz do sistema com o seguinte conteúdo:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>#!/usr/bin/env python3
+import os
+import sys
+import datetime
+from coletor import buscar_termo
+from db import registrar_auditoria
+
+# Configuração de log
+log_file = open('busca_agendada.log', 'a')
+log_file.write(f"\n--- Execução em {datetime.datetime.now()} ---\n")
+
+# Lê os termos do arquivo
+try:
+    with open('termos_busca.txt', 'r') as f:
+        termos = [linha.strip() for linha in f if linha.strip()]
+    
+    log_file.write(f"Termos carregados: {len(termos)}\n")
+    
+    # Executa a busca para cada termo
+    for termo in termos:
+        log_file.write(f"Buscando termo: {termo}\n")
+        
+        try:
+            # Registra início da busca
+            registrar_auditoria(
+                acao="busca_agendada",
+                descricao=f"Busca agendada para o termo: {termo}",
+                dados=f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            # Realiza a busca
+            resultados = buscar_termo(termo)
+            
+            # Registra resultados
+            registrar_auditoria(
+                acao="busca_agendada_concluida",
+                descricao=f"Busca agendada concluída para o termo: {termo}",
+                dados=f"Resultados: {len(resultados)}"
+            )
+            
+            log_file.write(f"Resultados encontrados: {len(resultados)}\n")
+            
+        except Exception as e:
+            log_file.write(f"ERRO ao buscar termo '{termo}': {str(e)}\n")
+            
+            # Registra erro
+            registrar_auditoria(
+                acao="erro",
+                descricao=f"Erro na busca agendada para o termo: {termo}",
+                dados=f"Erro: {str(e)}"
+            )
+    
+except Exception as e:
+    log_file.write(f"ERRO CRÍTICO: {str(e)}\n")
+    
+    # Registra erro crítico
+    registrar_auditoria(
+        acao="erro_critico",
+        descricao="Erro crítico na execução da busca agendada",
+        dados=f"Erro: {str(e)}"
+    )
+
+log_file.write("--- Fim da execução ---\n")
+log_file.close()</code></pre>
+                        <p>Torne o script executável:</p>
+                        <pre class="bg-dark text-light p-3 rounded"><code>chmod +x busca_agendada.py</code></pre>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">4. Verificação de Resultados</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Os resultados das buscas agendadas podem ser visualizados nas seguintes áreas:</p>
+                        <ul>
+                            <li><strong>Página inicial:</strong> Todos os resultados são exibidos na busca</li>
+                            <li><strong>Página de análise:</strong> Estatísticas e gráficos incluem os resultados das buscas agendadas</li>
+                            <li><strong>Registros de auditoria:</strong> Todas as buscas agendadas são registradas com a ação "busca_agendada"</li>
+                        </ul>
+                        <p>O arquivo <code>busca_agendada.log</code> também contém informações detalhadas sobre a execução das buscas.</p>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Atenção:</strong> Configure o agendamento de acordo com a sensibilidade dos termos e a capacidade do servidor. Buscas muito frequentes podem sobrecarregar o sistema e as fontes.
+                </div>
+                
+                <div class="mt-4">
+                    <a href="{{ url_for('ferramentas') }}" class="btn btn-primary">
+                        <i class="fas fa-tools"></i> Voltar para Ferramentas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comentários e créditos -->
+<!--
+Desenvolvido por Luiz Vaisconcelos
+Email: luiz.vaisconcelos@gmail.com
+LinkedIn: https://www.linkedin.com/in/vaisconcelos/
+GitHub: https://github.com/luizhvaisconcelos
+-->
+{% endblock %}
